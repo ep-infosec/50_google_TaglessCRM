@@ -1,0 +1,48 @@
+# coding=utf-8
+# Copyright 2020 Google LLC.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+# Config file for Running TCRM's Cloud Build CI.
+
+steps:
+- name: 'gcr.io/cloud-builders/git'
+  args:
+  - 'clone'
+  - 'https://github.com/google/gps_building_blocks.git'
+- name: 'gcr.io/cloud-builders/gcloud'
+  entrypoint: 'bash'
+  args:
+  - '-c'
+  - |
+    mkdir -p src/gps_building_blocks/cloud/utils \
+    && cp -r gps_building_blocks/py/gps_building_blocks/cloud/utils/* src/gps_building_blocks/cloud/utils
+- name: python:3.7-buster
+  entrypoint: bash
+  args:
+  - '-c'
+  - |
+    pip install -r requirements.txt \
+    && pip install pytest \
+    && pip install requests_mock \
+    && pip install freezegun \
+    && pip install pytest-cov \
+    && pip install mock \
+    && pip install parameterized \
+    && cd src \
+    && export PYTHONPATH=.:./plugins \
+    && python -m pytest -v --cov=. \
+    && export AIRFLOW_HOME=. \
+    && export TEST_TYPE=SYSTEM \
+    && airflow initdb \
+    && pytest -m systemtest test/system/*
